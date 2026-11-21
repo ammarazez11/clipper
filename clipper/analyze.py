@@ -66,7 +66,7 @@ def analyze_clip(d, src, seek, dur, words, cfg, run_dir):
     if frames_for_llm:
         try:
             listing = "\n".join(str(p.resolve()) for p in frames)
-            res = ask("Use the Read tool to open each image (frames from one video clip). For each frame say whether it "
+            res = ask("Open and look at each image file below (frames from one video clip). For each frame say whether it "
                       "shows burned-in SUBTITLES (spoken words rendered as text, usually bottom or middle; NOT logos, "
                       "watermarks, UI or game HUD), their region, and a <=10-word scene description.\n" + listing,
                       SCHEMA, cfg["models"]["vision"], run_dir, "analyze", tools=["Read"], add_dirs=[d])

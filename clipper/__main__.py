@@ -52,6 +52,7 @@ def cmd_run(a):
         cfg["whisper_model"] = a.whisper
     if backend() == "agent":       # fewer, larger questions: the operating agent has a big context window
         cfg["window_sec"] = cfg.get("agent_window_sec", 1800)
+        cfg["models"] = {k: "agent" for k in cfg["models"]}
     preset = dict(cfg["presets"][a.preset])
     if a.min:
         preset["min"] = a.min
@@ -214,6 +215,7 @@ def main(argv=None):
     st.add_argument("--restart", action="store_true", help="restart it (after code updates)")
     st.add_argument("--stop", action="store_true")
     st.add_argument("--port", type=int, default=8765)
+    st.add_argument("--no-open", action="store_true", help="don't open the browser")
     v = sub.add_parser("review", help="run the studio server in this terminal (blocking)")
     v.add_argument("--port", type=int, default=8765)
     v.add_argument("--no-open", action="store_true", help="don't open the browser")
@@ -239,7 +241,7 @@ def main(argv=None):
             if a.stop:
                 review.stop_studio(a.port)
             else:
-                review.launch_studio(a.port, restart=a.restart)
+                review.launch_studio(a.port, open_browser=not a.no_open, restart=a.restart)
         elif a.cmd == "review":
             review.serve(a.port, open_browser=not a.no_open)
         elif a.cmd == "status":

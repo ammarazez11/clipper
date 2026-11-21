@@ -48,7 +48,7 @@ def visual_lines(run_dir, info, cfg):
 
     def one(b):
         listing = "\n".join(f"t={t}s: {f.resolve()}" for t, f in b)
-        prompt = (f"Video: \"{info['title']}\". Use the Read tool to open EVERY image below (frames of the video at the "
+        prompt = (f"Video: \"{info['title']}\". Open and look at EVERY image file below (frames of the video at the "
                   "given time). For each frame return t, a <=18-word description of what is happening (people, action, "
                   "on-screen text, emotion), and interest 1-5 = how likely this moment is part of something funny, "
                   "shocking, impressive or dramatic that strangers would watch.\n" + listing)
