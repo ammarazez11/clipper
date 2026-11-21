@@ -1,0 +1,7 @@
+# Python 3.10-3.12. Installed by setup.bat / setup.ps1 into .venv
+yt-dlp[default]>=2026.10.26
+yt-dlp-ejs>=0.8.0
+faster-whisper==1.2.1
+opencv-python-headless>=4.10,<5   # 5.x dropped APIs the face tracking uses
+numpy>=1.26
+pillow>=10                        # brand images (tools/brand.py)

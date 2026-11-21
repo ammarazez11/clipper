@@ -1,0 +1,21 @@
+# local environment and downloads
+.venv/
+__pycache__/
+*.pyc
+models/*
+!models/.gitkeep
+
+# per-user work: downloads, renders, finished clips, brand files
+runs/
+ready/
+brand/
+
+# private settings and logins
+config.json
+cookies*.txt
+.env
+.claude/settings.local.json
+
+# music: bring your own (royalty-free) tracks; only the placeholder notes are tracked
+music/*/*
+!music/*/PUT_TRACKS_HERE.txt
