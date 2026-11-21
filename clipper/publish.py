@@ -37,7 +37,7 @@ For every clip return:
   5-8 lowercase hashtags (same rules, a little broader).
 - youtube_title: max 70 characters, searchable: creator name + what happens, curiosity without lying. No hashtags,
   at most one fully capitalised word, no clickbait that the clip doesn't deliver.
-- youtube_description: 1-2 short sentences about the moment, then a blank line, then "Full stream: {url}" and
+- youtube_description: 1-2 short sentences about the moment, then a blank line, then "Full video: {url}" and
   "Credit: {credit}" on their own lines, then a blank line and 3 hashtags on one line, the first being #shorts.
 """
 
