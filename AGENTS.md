@@ -78,10 +78,11 @@ Pressing Send already starts the full-quality renders in the studio (1–3 minut
 When the user says they're done:
 1. Run `.\clip.bat status <run>`. It shows how many clips were sent and the user's note.
 2. If there is a note, or the user asked for changes in the chat, apply them (section 6).
-3. Run `.\clip.bat finalize <run>`.
-   - In agent mode it first asks you to write the post texts; answer them as in section 5.
-   - Then run `.\clip.bat finalize <run>` again, until it prints **FINALS READY**.
-   - Clips that are already rendered are not rendered again; only their text files are updated.
+3. Run `.\clip.bat finalize <run>`, repeating as needed until it prints **FINALS READY**:
+   - **AGENT INPUT NEEDED** (agent mode): write the post texts as in section 5, then run finalize again.
+   - **FINALS IN PROGRESS**: the studio is still rendering some clips (1–3 minutes each). Tell the user it's almost done, wait a few minutes, then run finalize again. Never render them another way meanwhile.
+   - If the same clip stays "in progress" for more than 15 minutes, read `runs/studio.log`.
+   - Clips that are already rendered are never rendered again; only their text files are updated.
 4. Tell the user where the videos are, `ready\<run>\`, and open the folder for them (`explorer ready\<run>`).
 5. Explain that each video has a `.txt` file next to it with three parts:
    - **TIKTOK:** caption plus hashtags.

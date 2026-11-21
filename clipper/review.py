@@ -78,8 +78,9 @@ def export_ready(rid, clip):
             old.unlink()
     shutil.copy2(RUNS / rid / "clips" / f"{clip['n']:02d}" / "final.mp4", dst / f"{base}.mp4")
     from .publish import post_copy, post_text
-    # claude backend writes the copy right away; agent mode uses draft text until "clip finalize" runs
-    copy = post_copy(rid, [clip], allow_llm=backend() == "claude")[clip["n"]]
+    # never writes copy itself: "clip finalize" makes one batched call for all kept clips (cheaper, and the posts
+    # are written side by side); until then the .txt holds the draft caption, after it the cached final text
+    copy = post_copy(rid, [clip], allow_llm=False)[clip["n"]]
     (dst / f"{base}.txt").write_text(post_text(copy), encoding="utf-8")
     text = copy["tiktok"]
     man = [m for m in jload(dst / "manifest.json", []) if m["n"] != clip["n"]]
@@ -261,6 +262,12 @@ class H(BaseHTTPRequestHandler):
             for n in kept:      # start the full-quality renders now; finished ones are skipped automatically
                 enqueue(rid, n, True)
             return self._json({"ok": True, "kept": kept})
+        if m := re.match(r"^/api/run/([\w.-]+)/queue_finals$", p):
+            rid = m.group(1)
+            q = [c["n"] for c in effective_clips(rid) if c.get("status") == "approved" and not c["final"]
+                 and enqueue(rid, c["n"], True)]
+            busy_ = [c["n"] for c in effective_clips(rid) if busy(rid, c["n"])]
+            return self._json({"ok": True, "queued": q, "busy": busy_})
         if m := re.match(r"^/api/run/([\w.-]+)/open$", p):
             d = READY / m.group(1)
             d.mkdir(parents=True, exist_ok=True)
@@ -285,6 +292,19 @@ def _ping(port):
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/ping", timeout=2) as r:
             return json.loads(r.read())
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def queue_finals_remote(rid, port=8765):
+    """Ask a running studio to (re)queue the kept clips' finals; returns the clip numbers it is working on."""
+    import urllib.request
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/api/run/{rid}/queue_finals", data=b"{}", method="POST",
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            d = json.loads(r.read())
+            return sorted(set(d.get("queued", []) + d.get("busy", [])))
     except Exception:  # noqa: BLE001
         return None
 

@@ -126,23 +126,44 @@ def cmd_resume(rid, review_after=True):
 
 def cmd_finalize(rid):
     from .publish import post_copy
-    from .review import effective_clips, render_one
+    from .review import _ping, effective_clips, export_ready, queue_finals_remote, render_one
     rd = RUNS / rid
     set_logfile(rd / "log.txt")
     kept = [c for c in effective_clips(rid) if c.get("status") == "approved"]
+    if not kept:
+        log("no kept clips yet: the user has to keep clips (Y) and press Send in the studio first")
+        return 1
     log(f"finalize {rid}: {len(kept)} kept clips")
-    post_copy(rid, kept, strict=True)   # one batched question for every clip's TikTok / Instagram / YouTube text
+    post_copy(rid, kept, strict=True)   # one batched question/call for every clip's TikTok / Instagram / YouTube text
+    studio = bool(_ping(8765))
+    done, waiting, failed = 0, [], []
     for c in kept:
-        try:
-            render_one(rid, c["n"], final=True)   # already-rendered finals are skipped, their text is refreshed
-        except Exception as e:  # noqa: BLE001
-            log(f"  clip {c['n']} failed: {str(e)[:400]}")
+        if c["final"]:
+            export_ready(rid, c)          # rewrite its .txt with the final post text
+            done += 1
+        elif studio:
+            waiting.append(c["n"])        # the studio renders it (started by Send): never render twice at once
+        else:
+            try:
+                render_one(rid, c["n"], final=True)
+                done += 1
+            except Exception as e:  # noqa: BLE001
+                failed.append(c["n"])
+                log(f"  clip {c['n']} failed: {str(e)[:400]}")
+    if waiting:
+        busy_ = queue_finals_remote(rid) or waiting
+        log(f"FINALS IN PROGRESS: {done}/{len(kept)} ready; the studio is still rendering clip(s) {busy_} "
+            f"(1-3 min each). Run  {CLIP} finalize {rid}  again in a few minutes.")
+        return 4
+    if failed:
+        log(f"FINALS INCOMPLETE: clip(s) {failed} failed, see the lines above. Fix and run finalize again.")
+        return 1
     s = jload(rd / "submission.json")
     if s:
         s["state"] = "done"
         jsave(rd / "submission.json", s)
-    n = len(list((READY / rid).glob("*.mp4"))) if (READY / rid).exists() else 0
-    log(f"FINALS READY: {n} videos with their post text in {READY / rid}")
+    log(f"FINALS READY: {done} videos with their post text in {READY / rid}")
+    return 0
 
 
 def cmd_status(rid):
@@ -157,6 +178,9 @@ def cmd_status(rid):
     prev = sum((rd / "clips" / f"{c['n']:02d}" / "preview.mp4").exists() for c in clips)
     sub = jload(rd / "submission.json")
     fin = len(list((READY / rid).glob("*.mp4"))) if (READY / rid).exists() else 0
+    from .review import _ping, effective_clips
+    kept = [c for c in effective_clips(rid) if c.get("status") == "approved"]
+    fin_ok = sum(1 for c in kept if c["final"])
     stages = [("download + captions", (rd / "info.json").exists()), ("transcript", (rd / "transcript.json").exists()),
               ("signals", (rd / "signals.json").exists()), ("scan", (rd / "candidates.json").exists()),
               ("clip choice", bool(clips)), (f"previews {prev}/{len(clips)}", bool(clips) and prev == len(clips))]
@@ -169,7 +193,8 @@ def cmd_status(rid):
         print(f"  studio: {len(sub['kept'])} clips sent at {sub['at']} (state {sub['state']}); note: {sub.get('note') or '-'}")
     else:
         print("  studio: nothing sent yet")
-    print(f"  finals in ready/{rid}: {fin}")
+    print(f"  finals rendered: {fin_ok}/{len(kept)} kept clips (studio {'running' if _ping(8765) else 'not running'}); "
+          f"files in ready/{rid}: {fin}")
     lf = rd / "log.txt"
     if lf.exists():
         print("  last log lines:")
@@ -255,7 +280,7 @@ def main(argv=None):
         elif a.cmd == "costs":
             print(cost_line(RUNS / a.run))
         elif a.cmd == "finalize":
-            cmd_finalize(a.run)
+            return cmd_finalize(a.run)
         elif a.cmd == "doctor":
             from .doctor import doctor
             return doctor()
